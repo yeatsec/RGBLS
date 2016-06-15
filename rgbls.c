@@ -23,13 +23,13 @@
 #define	ADC0_PATH	"/sys/devices/ocp.2/helper.14/AIN0"
 #define ADC1_PATH	"/sys/devices/ocp.2/helper.14/AIN1"
 
+#define USEC	50	// desired adc sampling period in microseconds
 
 // double-buffer data members
 double buff[2][BUFF_SIZE];
-pthread_mutex_t buff_mutex;
-pthread_cond_t buff_cond;
-int adc_finished;
-int fft_finished;
+sem_t adc_finished;
+sem_t fft_finished;
+sem_t swap_finished;
 
 // rgb_strip resources
 rgb_strip strips[NUM_STRIPS];
@@ -40,6 +40,7 @@ int adc_fds[2];
 
 // control adc
 sem_t timer_sem;
+unsigned int sampling_channel;
 
 /*
 * int adc(unsigned int chan)
@@ -65,10 +66,21 @@ static void timersignalhandler(int sig)
 	sem_post(&timer_sem);
 }
 
+static void timersignalignore(int sig)
+{
+	continue;
+}
+
 static void * adc_routine(void * arg)
 {
-	// TODO - start timer
+	// start timer
+	struct itimerval tval = {
+		.it_interval = { .tv_sec = 0, .tv_usec = USEC},
+			.it_value = { .tv_sec = 0, .tv_usec = USEC}
+	};
+	setitimer(ITIMER_REAL, &tval, (struct itimerval*)0); /* start timer */
 	unsigned int buff_index = 0; // initialize to first buffer
+	unsigned int elem_index = 0; // first elem
 	while(1)
 	{
 		adc_finished = 0;	// only adc_routine can set this value
@@ -81,9 +93,26 @@ static void * adc_routine(void * arg)
 			exit(-1);
 		}
 		// read the adc and update double-buffer
-		//
+		buff[buff_index] = (double) adc(sampling_channel);
+		buff_index = (++buff_index)%BUFF_SIZE;
 		// if the double-buffer is full, wait for fft to send data and then swap
-		// set adc_finished to 1, signal the condition
+		if (!buff_index)	// looped around and is full
+		{
+			signal(SIGALRM, timersignalignore);
+			sem_post(&adc_finished);	// signal that the adc buffer is filled
+			int fftr = sem_wait(&fft_finished);	// block if fft not finished
+			if (fftr == -1 && errno != EINTR)
+			{
+				printf("sem_wait(&fft_finished) error\n");
+				exit(420);
+			}
+			// do swap
+			buff_index = (++buff_index)%2;
+			
+			// finished with swap
+			
+			signal(SIGALRM, timersignalhandler);
+		}
 	}
 	return NULL;
 }
