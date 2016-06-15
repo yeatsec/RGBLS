@@ -81,6 +81,45 @@ int adc(unsigned int chan)
 	return atoi(value);
 }
 
+rgb negate_color(rgb * orig)
+{
+	rgb temp;
+	temp.red = orig->blue;
+	temp.green = orig->red;
+	temp.blue = orig->green;
+	return temp;
+}
+
+rgb calculate_color(unsigned int index)
+{
+	rgb temp;
+	if (index < 4) // red full
+	{
+		temp.red = 0xFF;
+		temp.green = 0x00;
+		temp.blue = index * 63;
+	}
+	else if (index < 8)
+	{
+		temp.red = 0xFF - ((index-4)*63);
+		temp.green = 0x00;
+		temp.blue = 0xFF;
+	}
+	else if (index < 12)
+	{
+		temp.red = 0;
+		temp.green = (index - 8) * 63;
+		temp.blue = 0xFF;
+	}
+	else
+	{
+		temp.red = 0;
+		temp.green = 0xFF;
+		temp.blue = 0xFF - ((index - 12) * 63);
+	}
+	return temp;
+}
+
 static void timersignalhandler(int sig)
 {
 	sem_post(&timer_sem);
@@ -167,13 +206,33 @@ static void * fft_routine(void * arg)
 		// calculate fft
 		if (fftlib_spectra(buff[buff_index]))
 			continue;
-		
+		unsigned int max_index = 0;
+		double max = 0.0;
+		for (unsigned int i = 0; i < BUFF_SIZE/2; ++i)
+		{
+			if (buff[buff_index][i] > max)
+			{
+				max = buff[buff_index][i];
+				max_index = i;
+			}
+		}
 		// once fft finished, calculate colors
-		rgb color;
-		color.red = 255;
-		color.green = 0;
-		color.blue = blueval--;
-		
+		rgb color = calculate_color(max_index);
+		rgb negative = negate_color(&color);
+		for (unsigned int mag2_index = 0; mag2_index < BUFF_SIZE/2; ++mag2_index)
+		{
+			unsigned int bar_height = MATRIX_HEIGHT * buff[buff_index][mag2_index] / max;
+			for (unsigned int row_pixel = 0; row_pixel < bar_height; ++row_pixel)
+			{
+				matrix_wrapper_write(2*mag2_index, row_pixel, color);
+				matrix_wrapper_write(2*mag2_index + 1, row_pixel, color);
+			}
+			for (unsigned int row_pixel = bar_height; row_pixel < MATRIX_HEIGHT; ++row_pixel)
+			{
+				matrix_wrapper_write(2*mag2_index, row_pixel, negative);
+				matrix_wrapper_write(2*mag2_index + 1, row_pixel, negative);
+			}
+		}
 		// set strips
 		for (unsigned int strip_index = 0; strip_index < NUM_STRIPS; ++strip_index)
 		{
@@ -194,6 +253,9 @@ static void * fft_routine(void * arg)
 				printf("opc_client_send_formatted error\n");
 			}
 		}
+		if (opc_client_send_formatted((char)4, 0, &matrix))
+			printf("opc_client_send_formatted matrix error\n");
+		
 		// wait for adc_thread if needed
 		sem_post(&fft_finished);
 		while (sem_wait(&adc_finished) && errno == EINTR)
