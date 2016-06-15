@@ -13,7 +13,7 @@
 #include "fftlib.h"
 #include "opc_client.h"
 #include "rgbls_game.h"
-#include "rgbls_gpio.h"
+//#include "rgbls_gpio.h"
 
 // constants
 #define	BUFF_BITS	5
@@ -230,6 +230,7 @@ static void * fft_routine(void * arg)
         if(!GAME_INITIALIZED) {
 		printf("Initialize game");
             	initPlayer();
+		myPlayer.x++;
 		printf("Put some obstacles in");
 		setObstacles();
             	GAME_INITIALIZED = 1;
@@ -313,7 +314,7 @@ int main(void)
         printf("program_over init failed\n");
         return 1;
     }
-    gpio_initialize(); // initialize input for game using libsoc
+    //gpio_initialize(); // initialize input for game using libsoc
     // initialize strip resources
     /*for (int i = 0; i < NUM_STRIPS; ++i)
      {
