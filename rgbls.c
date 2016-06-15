@@ -14,8 +14,8 @@
 #include "opc_client.h"
 
 // constants
-#define	BUFF_BITS	10
-#define	BUFF_SIZE	1024
+#define	BUFF_BITS	7
+#define	BUFF_SIZE	128
 #define	STRIP_LENGTH	60
 #define	NUM_STRIPS	4
 #define	MATRIX_STRIP_LENGTH	256
@@ -24,7 +24,7 @@
 #define	ADC0_PATH	"/sys/devices/ocp.2/helper.11/AIN0"
 #define ADC1_PATH	"/sys/devices/ocp.2/helper.11/AIN1"
 
-#define USEC	50	// desired adc sampling period in microseconds
+#define USEC	200	// desired adc sampling period in microseconds
 
 // double-buffer data members
 double buff[2][BUFF_SIZE];
@@ -102,16 +102,17 @@ static void * adc_routine(void * arg)
 			exit(-1);
 		}
 		// read the adc and update double-buffer
-		double value = (double) adc(sampling_channel);
+		double value = 0.0;
+		// double value = (double) adc(sampling_channel);
 		buff[buff_index][elem_index] = value;
 		elem_index = (++elem_index)%BUFF_SIZE;
-		printf("%f\n");				// REMOVE LATER
+		//printf("%f\n");				// REMOVE LATER
 		// if the double-buffer is full, wait for fft to send data and then swap
 		if (!elem_index)	// looped around and is full
 		{
 			if(sigaction(SIGALRM, &sa_ignore, NULL))
 				printf("set to timersignalignore fail\n");
-			printf("registered SIGALARM to ignore\n");
+			// printf("registered SIGALARM to ignore\n");
 			sem_post(&adc_finished);	// signal that the adc buffer is filled
 			int fftr = sem_wait(&fft_finished);	// block if fft not finished
 			if (fftr == -1 && errno != EINTR)
@@ -141,17 +142,18 @@ static void * fft_routine(void * arg)
 	if(sigprocmask(SIG_BLOCK, &no_sigalrm, NULL))
 		printf("unable to mask sigalrm for fft_thread\n");
 	unsigned int buff_index = 1; // initialize to second arr
+	char blueval = 255;
 	while(1)
 	{
 		// calculate fft
-		if (fftlib_spectra(buff[buff_index]))
-			continue;
+		//if (fftlib_spectra(buff[buff_index]))
+		//	continue;
 		
 		// once fft finished, calculate colors
 		rgb color;
 		color.red = 255;
 		color.green = 0;
-		color.blue = 255;
+		color.blue = blueval--;
 		
 		// set strips
 		for (unsigned int strip_index = 0; strip_index < NUM_STRIPS; ++strip_index)

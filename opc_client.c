@@ -61,10 +61,10 @@ int opc_client_send_formatted(char _channel, char _command, rgb_strip * _strip_p
 
 	for (int i = 0; i < _strip_ptr->size; ++i)
 	{
-		int base_index = 3*i + 4;
-		msg[base_index] = (_strip_ptr->rgb_leds)[i].red;
-		msg[base_index + 1] = (_strip_ptr->rgb_leds)[i].green;
-		msg[base_index + 2] = (_strip_ptr->rgb_leds)[i].blue;
+		int base_index = 3*i + 4;	// BRG format
+		msg[base_index] = (_strip_ptr->rgb_leds)[i].blue;
+		msg[base_index + 1] = (_strip_ptr->rgb_leds)[i].red;
+		msg[base_index + 2] = (_strip_ptr->rgb_leds)[i].green;
 	}
 
 	// sendto
