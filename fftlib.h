@@ -9,7 +9,7 @@
 #define FFTLIB_H_
 
 /*
-* Expects sampled data of type double of SIZE=1024 and BITS=10
+* Expects sampled data of type double of SIZE=32 and BITS=5
 */
 int fftlib_spectra(double * real);
 

@@ -3,16 +3,20 @@
 #include <math.h>
 #include "fftlib.h"
 
-#define SIGNAL_LENTH	32
-
+#define SIGNAL_LENGTH	32
+#define	PI	3.14159
 int main(void)
 {
-	double sig[SIGNAL_LENGTH];
-	for (int i = 0; i < SIGNAL_LENGTH; ++i)
-		sig[i] = cos(2 * M_PI * ((double)(i)) / ((double)(SIGNAL_LENGTH)));
+	static double sig[SIGNAL_LENGTH];
+	printf("START TIME SIGNAL\n");
+	for (int i = 0; i < SIGNAL_LENGTH; ++i) {
+		sig[i] = 1.8 * cos(2 * PI * ((double)(i)) / ((double)(SIGNAL_LENGTH)));
+		printf("%f\n", sig[i]);
+	}
 	int ret = fftlib_spectra(sig);
 	printf("return value %d\n", ret);
-	for (int i = 0; i < SIGNAL_LENGTH; ++i)
+	printf("START SPECTRA ENERGIES\n");
+	for (int i = 0; i < SIGNAL_LENGTH/2; ++i)
 		printf("%f\n", sig[i]);
 	return 0;
 }

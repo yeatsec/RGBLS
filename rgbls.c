@@ -59,7 +59,7 @@ void matrix_wrapper_write(unsigned int col, unsigned int row, rgb _color)
 		// col must be going 'up'
 		index = col*MATRIX_HEIGHT + row;	
 	}
-	matrix[i] = _color;
+	matrix.rgb_leds[index] = _color;
 }
 
 /*

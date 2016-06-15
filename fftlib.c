@@ -6,10 +6,12 @@
  */
 
 #include <stdlib.h>
+//#include <stdio.h>
 #include "fftlib.h"
 
 #define	BITS	5
 #define	SIZE	32
+#define	HALF_SIZE	16
 
 // singleton data members
 static const double real_roots[SIZE] = {1.0, 0.98078528, 0.92387953, 0.83146961, 0.70710678, 0.55557023, 0.38268343, 0.19509032, 0.0, -0.19509032, -0.38268343, -0.55557023, -0.70710678, -0.83146961, -0.92387953, -0.98078528, -1.0, -0.98078528, -0.92387953, -0.83146961, -0.70710678, -0.55557023, -0.38268343, -0.19509032, -0.0, 0.19509032, 0.38268343, 0.55557023, 0.70710678, 0.83146961, 0.92387953, 0.98078528};
@@ -17,7 +19,7 @@ static const double imag_roots[SIZE] = {0.0, 0.19509032, 0.38268343, 0.55557023,
 static double imag[SIZE];
 
 static const int inds[SIZE] = {0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31};
-int pow_of_two(int exponent)
+static int pow_of_two(int exponent)
 {
 	int ans = 1;
 	for (int i = 0; i < exponent; ++i)
@@ -41,11 +43,14 @@ int fftlib_spectra(double * real)
 	for (int i = 0; i < SIZE; ++i)
 		real[i] = temp[i];
 
+	/*printf("START UNPROCESSED SPECTRA\n");
 	// initialize imaginary to 0
 	for (int i = 0; i < SIZE; ++i)
 	{
+		printf("%f\n", real[i]);
 		imag[i] = 0.0;
 	}
+	*/
 	for (int stage = 0; stage < BITS; ++stage)
 	{
 		int half_frame = pow_of_two(stage);
@@ -72,9 +77,18 @@ int fftlib_spectra(double * real)
 			}
 		}
 	}
+	/* For Debugging Purposes
+	printf("START REALS\n");
 	for (int i = 0; i < SIZE; ++i)
+		printf("%f\n", real[i]);
+	printf("START IMAGINARIES\n");
+	for (int i = 0; i < SIZE; ++i)
+		printf("%f\n", imag[i]);
+	printf("START INTERNAL ENERGIES\n");
+	*/
+	for (int i = 0; i < HALF_SIZE; ++i)
 	{
-		real[i] *= real[i] * imag[i] * imag[i];
+		real[i] = (real[i] * real[i]) + (imag[i] * imag[i]);
 	}
 	return 0;
 }
