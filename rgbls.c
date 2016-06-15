@@ -13,7 +13,7 @@
 #include "fftlib.h"
 #include "opc_client.h"
 #include "rgbls_game.h"
-#include "gpio.h"
+#include "rgbls_gpio.h"
 
 // constants
 #define	BUFF_BITS	5
