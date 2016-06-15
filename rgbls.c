@@ -13,6 +13,7 @@
 #include "fftlib.h"
 #include "opc_client.h"
 #include "rgbls_game.h"
+#include "gpio.h"
 
 // constants
 #define	BUFF_BITS	5
@@ -24,7 +25,9 @@
 #define MATRIX_HEIGHT	8	// number of rows
 
 //int GAME_MODE = 1;
+#define	UPDATE_PERIOD	5
 int GAME_INITIALIZED = 0;
+int update_control = 0;
 
 #define	PORT	7890
 #define	SERVER_ADDRESS	"::1"
@@ -258,24 +261,6 @@ static void * fft_routine(void * arg)
                 total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = color.blue;
             }
         }
-        
-            //controlPlayer();
-            if (max_index == 1 || max_index == 2) {
-                printf("obstacle added\n");
-		addObstacle();
-            }
-            total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].red = 0xFF;
-            total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].green = 0xFF;
-            total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].blue = 0xFF;
-            for (int i = 0; i < numObstacles; ++i) {
-                total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].red = negative.red;
-                total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].green = negative.green;
-                total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].blue = negative.blue;
-            }
-            detectCollision();
-            updateObstacles();
-       
-        //printf("filling up total_strip\n");
         for (unsigned int led_index = 0; led_index < MATRIX_STRIP_LENGTH; ++led_index)
         {
             unsigned int index = led_index + (NUM_STRIPS * MATRIX_STRIP_LENGTH);
@@ -283,6 +268,25 @@ static void * fft_routine(void * arg)
             total_strip[index].green = matrix[led_index].green;
             total_strip[index].blue = matrix[led_index].blue;
         }
+
+            //controlPlayer();
+        if ((max_index == 1 || max_index == 2) && update_control == 0) {
+		addObstacle();
+		update_control = 5;
+        }
+	if (update_control > 0)
+		update_control--;
+	total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].red = 0xFF;
+	total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].green = 0xFF;
+        total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].blue = 0xFF;
+	for (int i = 0; i < numObstacles; ++i) {
+        	total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].red = negative.red;
+        	total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].green = negative.green;
+        	total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].blue = negative.blue;
+        }
+	detectCollision();
+	updateObstacles();
+        //printf("filling up total_strip\n");
         //printf("about to send formatted\n");
         if (opc_client_send_formatted((char) 0, 0, total_strip))
             printf("opc_client_send_formatted error\n");
@@ -309,6 +313,7 @@ int main(void)
         printf("program_over init failed\n");
         return 1;
     }
+    gpio_initialize(); // initialize input for game using libsoc
     // initialize strip resources
     /*for (int i = 0; i < NUM_STRIPS; ++i)
      {

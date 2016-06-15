@@ -23,11 +23,11 @@ struct obstacle {
 	int y;
 };
 
-static struct obstacle obstacleArray[MAX_OBSTACLES];
+struct obstacle obstacleArray[MAX_OBSTACLES];
 
-static struct player myPlayer;
+struct player myPlayer;
 
-static int numObstacles = 0;
+int numObstacles;
 
 void controlPlayer(int i);
 

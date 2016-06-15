@@ -13,7 +13,7 @@
 #define TOP	60
 #define	WIDTH	4
 
-int rightBorder = 3
+int rightBorder = 3;
 int leftBorder = 0;
 
 int max = 10;
@@ -66,7 +66,7 @@ void initObstacle(int i) {
         tmp.x = r;
 	tmp.y = TOP - 1;
         obstacleArray[i] = tmp;
-	printf("obstacle initialized\n");
+	//printf("obstacle initialized\n");
     
 }
 
@@ -105,9 +105,9 @@ void addObstacle() {
 		numObstacles++;
 		initObstacle(numObstacles-1);
 	}
-	printf("Obstacle added");
+	//printf("Obstacle added");
 }
-}
+
 
 void removeObstacle()
 {
@@ -119,19 +119,19 @@ void removeObstacle()
 
 void setObstacles() {
 	numObstacles = 3;
-	struct obstacle1;
+	struct obstacle obstacle1;
 	obstacle1.x = 2;
 	obstacle1.y = 30;
 	obstacleArray[0] = obstacle1;
-	struct obstacle2;
+	struct obstacle obstacle2;
 	obstacle2.x = 1;
 	obstacle2.y = 35;
 	obstacleArray[1] = obstacle2;
-	struct obstacle3;
-	obstacle1.x = 0;
-	obstacle1.y = 25;
+	struct obstacle obstacle3;
+	obstacle3.x = 0;
+	obstacle3.y = 25;
 	obstacleArray[2] = obstacle3;
-	printf("obstacles set");
+	//printf("obstacles set");
 }
 /*int main(void) {
     
