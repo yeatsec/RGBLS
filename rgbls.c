@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <unistd.h>
+#include <string.h> // memset
 
 #include "fftlib.h"
 #include "opc_client.h"
@@ -29,7 +30,6 @@
 double buff[2][BUFF_SIZE];
 sem_t adc_finished;
 sem_t fft_finished;
-sem_t swap_finished;
 
 // rgb_strip resources
 rgb_strip strips[NUM_STRIPS];
@@ -41,6 +41,7 @@ int adc_fds[2];
 // control adc
 sem_t timer_sem;
 unsigned int sampling_channel;
+
 
 /*
 * int adc(unsigned int chan)
@@ -68,11 +69,20 @@ static void timersignalhandler(int sig)
 
 static void timersignalignore(int sig)
 {
-	
 }
 
 static void * adc_routine(void * arg)
 {
+	// initialize both sigaction structs to configure each timersignal handler
+	static struct sigaction sa_ignore;
+	memset(&sa_ignore, 0, sizeof(sa_ignore));
+	sa_ignore.sa_handler = timersignalignore;
+	static struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = timersignalhandler;
+	if(sigaction(SIGALRM, &sa, NULL))
+		printf("set to timersignalhandler fail\n");
+	printf("entered adc_routine, registering timersignalhandler and starting timer\n");
 	// start timer
 	struct itimerval tval = {
 		.it_interval = { .tv_sec = 0, .tv_usec = USEC},
@@ -92,12 +102,15 @@ static void * adc_routine(void * arg)
 			exit(-1);
 		}
 		// read the adc and update double-buffer
-		buff[buff_index][elem_index] = (double) adc(sampling_channel);
+		double value = (double) adc(sampling_channel);
+		buff[buff_index][elem_index] = value;
 		elem_index = (++elem_index)%BUFF_SIZE;
+		printf("%f\n");				// REMOVE LATER
 		// if the double-buffer is full, wait for fft to send data and then swap
 		if (!elem_index)	// looped around and is full
 		{
-			signal(SIGALRM, timersignalignore);
+			if(sigaction(SIGALRM, &sa_ignore, NULL))
+				printf("set to timersignalignore fail\n");
 			printf("registered SIGALARM to ignore\n");
 			sem_post(&adc_finished);	// signal that the adc buffer is filled
 			int fftr = sem_wait(&fft_finished);	// block if fft not finished
@@ -109,7 +122,8 @@ static void * adc_routine(void * arg)
 			// do swap
 			buff_index = (++buff_index)%2;
 			// finished with swap
-			signal(SIGALRM, timersignalhandler);
+			if(sigaction(SIGALRM, &sa, NULL))
+				printf("set to timersignalhandler fail\n");
 		}
 	}
 	return NULL;
@@ -117,6 +131,15 @@ static void * adc_routine(void * arg)
 
 static void * fft_routine(void * arg)
 {
+	printf("entered fft_routine, blocking SIG_ALRM\n");
+	// deregister signal for self
+	sigset_t no_sigalrm;
+	if(sigemptyset(&no_sigalrm))
+		printf("unable to empty sig set for fft_thread\n");
+	if(sigaddset(&no_sigalrm, SIGALRM))
+		printf("unable to configure sigset_t for fft_thread\n");
+	if(sigprocmask(SIG_BLOCK, &no_sigalrm, NULL))
+		printf("unable to mask sigalrm for fft_thread\n");
 	unsigned int buff_index = 1; // initialize to second arr
 	while(1)
 	{
@@ -152,10 +175,9 @@ static void * fft_routine(void * arg)
 		}
 		// wait for adc_thread if needed
 		sem_post(&fft_finished);
-		if (sem_wait(&adc_finished))
+		while (sem_wait(&adc_finished) && errno == EINTR)
 		{
-			printf("fft_finished sem_wait error\n");
-			exit(421);
+			continue;	// sem_wait interrupted by signal
 		}
 		// signal buffer swap
 		buff_index = (++buff_index)%2;
@@ -165,6 +187,12 @@ static void * fft_routine(void * arg)
 
 int main(void)
 {
+	sem_t program_over;
+	if (sem_init(&program_over, 0, 0))
+	{
+		printf("program_over init failed\n");
+		return 1;
+	}
 	// initialize strip resources
 	for (int i = 0; i < NUM_STRIPS; ++i)
 	{
@@ -191,7 +219,7 @@ int main(void)
 		printf("sem_init error\n");
 		return 3;
 	}
-	signal(SIGALRM, timersignalhandler); // register the timer signal
+	printf("registering SIGALRM\n");
 	// initialize semaphores
 	if (sem_init(&adc_finished, 0, 0))
 	{
@@ -211,15 +239,23 @@ int main(void)
 		printf("adc_thread create failed\n");
 		return 6;
 	}
+	sigset_t no_alrm;
+	if(sigemptyset(&no_alrm))
+		printf("main thread unable to clear no_alrm set\n");
+	if(sigaddset(&no_alrm, SIGALRM))
+		printf("main thread unable to add no_alrm to set\n");
+	if(sigprocmask(SIG_BLOCK, &no_alrm, NULL))
+		printf("main thread unable to block SIG_ALRM\n");
+	printf("created adc thread\n");
 	if (pthread_create(&fft_thread, NULL, fft_routine, NULL))
 	{
 		printf("fft_thread create failed\n");
 		return 7;
 	}
+	printf("created fft thread \n");
 	// TODO - initialize button input
-	void * ret;
-	pthread_join(adc_thread, &ret);
-	pthread_join(fft_thread, &ret);
+	while(sem_wait(&program_over)==-1 && errno == EINTR)
+		continue;
 	printf("deallocating resources\n");
 	// close server
 	if (opc_client_close())
