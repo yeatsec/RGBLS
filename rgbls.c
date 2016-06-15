@@ -5,18 +5,16 @@
 // #include <rt.h> // is this a library?? will probably need this for the linker
 
 //#include "fftlib/fftlib.h"
-#include "./opc_client/opc_client.h"
+#include "opc_client.h"
 
 // constants
-const int BUFF_BITS = 10;
-const int BUFF_SIZE = 1024;
-const int STRIP_LENGTH = 60;
-const int NUM_STRIPS = 4;
-const int MATRIX_STRIP_LENGTH = 256;
-
-// server constants
-const int PORT = 7890;
-const char * SERVER_ADDRESS = "127.0.0.1";
+#define	BUFF_BITS	10
+#define	BUFF_SIZE	1024
+#define	STRIP_LENGTH	60
+#define	NUM_STRIPS	4
+#define	MATRIX_STRIP_LENGTH	256
+#define	PORT	7890
+#define	SERVER_ADDRESS	"::1"
 
 // double-buffer data members
 double sample_buff[BUFF_SIZE];
@@ -54,6 +52,7 @@ int main(void)
 	// initialize state in free-mode
 	// timer-based semaphore-controlled ADC sampling
 	// register signal for semaphore timer
+	printf("deallocating resources\n");
 	// close server
 	if (opc_client_close())
 	{

@@ -1,11 +1,13 @@
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <strings.h>
+#include "opc_client.h"
 
-const int MAX_MSG_SIZE = 772; // 256 * 3 + 4
+#define	MAX_MSG_SIZE	772 // 256 * 3 + 4
 
 int sock_fd; // file descriptor for socket
 struct sockaddr_in6 sa;
@@ -31,13 +33,13 @@ int opc_client_init(int _port, char * _server_address)
 		return 2;
 	}
 	bzero(&sa, sizeof(struct sockaddr_in6));
-	sa.sin_family = AF_INET6;
-	if (inet_pton(AF_INET6, SERVER_ADDRESS, &sa.sin6_addr) == 0)
+	sa.sin6_family = AF_INET6;
+	if (inet_pton(AF_INET6, server_address, &sa.sin6_addr) == 0)
 	{
 		printf("inet_pton\n");
 		return 3;
 	}
-	sa.sin_port = htons(port);
+	sa.sin6_port = htons(port);
 	// ready to send datagram
 	initialized = 1;
 	printf("client initialized\n");
@@ -52,15 +54,15 @@ int opc_client_send_formatted(char _channel, char _command, rgb_strip * _strip_p
 		return 1;
 	}
 	char msg[MAX_MSG_SIZE];
-	msg[0] = channel;
-	msg[1] = command;
+	msg[0] = _channel;
+	msg[1] = _command;
 	msg[2] = (char) ((_strip_ptr->size * 3)/256);
 	msg[3] = (char) ((_strip_ptr->size * 3)%256);
 
-	for (int i = 0; i < _data_size; ++i)
+	for (int i = 0; i < _strip_ptr->size; ++i)
 	{
 		int base_index = 3*i + 4;
-		msg[base_index] = _(_strip_ptr->rgb_leds)[i].red;
+		msg[base_index] = (_strip_ptr->rgb_leds)[i].red;
 		msg[base_index + 1] = (_strip_ptr->rgb_leds)[i].green;
 		msg[base_index + 2] = (_strip_ptr->rgb_leds)[i].blue;
 	}
@@ -95,11 +97,10 @@ void opc_client_rgb_strip_init(rgb_strip * _strip, int _size)
 	_strip->rgb_leds = (rgb *)malloc(_size*sizeof(rgb));
 	for (int i = 0; i < _size; ++i)
 	{
-		rgb_leds[i].red=0;
-		rgb_leds[i].green=0;
-		rgb_leds[i].blue=0;
+		(_strip->rgb_leds)[i].red=0;
+		(_strip->rgb_leds)[i].green=0;
+		(_strip->rgb_leds)[i].blue=0;
 	}
-	return 0;
 }
 
 void opc_client_rgb_strip_destroy(rgb_strip * _strip)

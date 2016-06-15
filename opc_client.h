@@ -13,8 +13,8 @@ typedef struct rgb_struct {
 } rgb;
 
 typedef struct rgb_strip_struct {
-	rgb rgb_leds[];
 	int size;
+	rgb * rgb_leds;
 } rgb_strip;
 
 int opc_client_init(int _port, char * _server_address);
