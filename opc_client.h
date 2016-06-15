@@ -19,7 +19,7 @@ typedef struct rgb_strip_struct {
 
 int opc_client_init(int _port, char * _server_address);
 
-int opc_client_send_formatted(char _channel, char _command, rgb_strip * _strip_ptr);
+int opc_client_send_formatted(char _channel, char _command, rgb _rgb_arr[]);
 
 int opc_client_close();
 

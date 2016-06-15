@@ -25,7 +25,6 @@
 #define	PORT	7890
 #define	SERVER_ADDRESS	"::1"
 #define	ADC0_PATH	"/sys/bus/iio/devices/iio:device0/in_voltage0_raw"
-#define ADC1_PATH	"/sys/devices/ocp.2/helper.11/AIN1"
 
 #define USEC	1000	// desired adc sampling period in microseconds
 
@@ -35,16 +34,15 @@ sem_t adc_finished;
 sem_t fft_finished;
 
 // rgb_strip resources
-rgb_strip strips[NUM_STRIPS];
-rgb_strip matrix;
-rgb_strip total_strip;
+rgb strips[NUM_STRIPS][STRIP_LENGTH];
+rgb matrix[MATRIX_STRIP_LENGTH];
+rgb total_strip[5 * MATRIX_STRIP_LENGTH];
 
 // sampling resources
 FILE * f0;
 
 // control adc
 sem_t timer_sem;
-unsigned int sampling_channel;
 
 // wrapper to account for snaking-strip structure of the LED matrix
 void matrix_wrapper_write(unsigned int col, unsigned int row, rgb * _color)
@@ -58,13 +56,13 @@ void matrix_wrapper_write(unsigned int col, unsigned int row, rgb * _color)
 	else
 	{
 		// col must be going 'up'
-		index = col*MATRIX_HEIGHT + row;	
+		index = col*MATRIX_HEIGHT + row;
 	}
 	//printf("index: %u\n", index);
 	//printf("matrix: red %d green %d blue %d\n",(int) _color->red,(int) _color->green,(int) _color->blue);
-	matrix.rgb_leds[index].red = _color->red;
-	matrix.rgb_leds[index].green = _color->green;
-	matrix.rgb_leds[index].blue = _color->blue;
+	matrix[index].red = _color->red;
+	matrix[index].green = _color->green;
+	matrix[index].blue = _color->blue;
 }
 
 /*
@@ -73,7 +71,7 @@ void matrix_wrapper_write(unsigned int col, unsigned int row, rgb * _color)
 * Available: embedded-basics.blogspot.com/2014/10/beaglebone-black-analog-input-pins.html
 */
 
-int adc(unsigned int chan)
+int adc(void)
 {
 	char value_str[7];
 	fread(&value_str, 6, 6, f0);
@@ -160,7 +158,7 @@ static void * adc_routine(void * arg)
 			exit(-1);
 		}
 		// read the adc and update double-buffer
-		double value = (double) adc(sampling_channel);
+		double value = (double) adc();
 		printf("%f\n", value);
 		buff[buff_index][elem_index] = value;
 		elem_index = (++elem_index)%BUFF_SIZE;
@@ -178,6 +176,7 @@ static void * adc_routine(void * arg)
 				printf("sem_wait(&fft_finished) error\n");
 				exit(420);
 			}
+			printf("adc thread through\n");
 			// do swap
 			buff_index = (++buff_index)%2;
 			// finished with swap
@@ -205,9 +204,9 @@ static void * fft_routine(void * arg)
 		// calculate fft
 		if (fftlib_spectra(buff[buff_index]))
 			continue;
-		unsigned int max_index = 0;
+		unsigned int max_index = 1;
 		double max = 0.0;
-		for (unsigned int i = 0; i < BUFF_SIZE/2; ++i)
+		for (unsigned int i = 1; i < BUFF_SIZE/2; ++i)
 		{
 			if (buff[buff_index][i] > max)
 			{
@@ -216,11 +215,16 @@ static void * fft_routine(void * arg)
 			}
 		}
 		// once fft finished, calculate colors
+		printf("calculate color\n");
 		rgb color = calculate_color(max_index);
+		printf("negative\n");
 		rgb negative = negate_color(&color);
+		printf("negative calculated\n");
 		for (unsigned int mag2_index = 0; mag2_index < BUFF_SIZE/2; ++mag2_index)
 		{
 			unsigned int bar_height = MATRIX_HEIGHT * buff[buff_index][mag2_index] / max;
+			if (bar_height > 8)
+				bar_height = 8;
 			for (unsigned int row_pixel = 0; row_pixel < bar_height; ++row_pixel)
 			{
 				matrix_wrapper_write(2*mag2_index, row_pixel, &color);
@@ -232,31 +236,37 @@ static void * fft_routine(void * arg)
 				matrix_wrapper_write(2*mag2_index + 1, row_pixel, &negative);
 			}
 		}
+		printf("setting strips\n");
 		// set strips
 		for (unsigned int strip_index = 0; strip_index < NUM_STRIPS; ++strip_index)
 		{
 			for (unsigned int led_index = 0; led_index < STRIP_LENGTH; ++led_index)
 			{
-				total_strip.rgb_leds[led_index + (strip_index*MATRIX_STRIP_LENGTH)].red = color.red;
-				total_strip.rgb_leds[led_index + (strip_index*MATRIX_STRIP_LENGTH)].green = color.green;
-				total_strip.rgb_leds[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = color.blue;
+				total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].red = color.red;
+				total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].green = color.green;
+				total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = color.blue;
 			}
 		}
+		printf("filling up total_strip\n");
 		for (unsigned int led_index = 0; led_index < MATRIX_STRIP_LENGTH; ++led_index)
 		{
 			unsigned int index = led_index + (NUM_STRIPS * MATRIX_STRIP_LENGTH);
-			total_strip.rgb_leds[index].red = matrix.rgb_leds[led_index].red;
-			total_strip.rgb_leds[index].green = matrix.rgb_leds[led_index].green;
-			total_strip.rgb_leds[index].blue = matrix.rgb_leds[led_index].blue;
+			total_strip[index].red = matrix[led_index].red;
+			total_strip[index].green = matrix[led_index].green;
+			total_strip[index].blue = matrix[led_index].blue;
 		}
-		if (opc_client_send_formatted((char) 0, 0, &total_strip))
+		printf("about to send formatted\n");
+		if (opc_client_send_formatted((char) 0, 0, total_strip))
 			printf("opc_client_send_formatted error\n");
 		// wait for adc_thread if needed
+		printf("fft thread made it to post\n");
 		sem_post(&fft_finished);
-		while (sem_wait(&adc_finished) && errno == EINTR)
+		int adc_ret = sem_wait(&adc_finished);
+		if (adc_ret && errno != EINTR)
 		{
-			continue;	// sem_wait interrupted by signal
+			printf("sem_wait(&adc_finished) failed\n");	// sem_wait interrupted by signal
 		}
+		printf("fft thread through\n");
 		// signal buffer swap
 		buff_index = (++buff_index)%2;
 	}
@@ -272,16 +282,18 @@ int main(void)
 		return 1;
 	}
 	// initialize strip resources
-	for (int i = 0; i < NUM_STRIPS; ++i)
+	/*for (int i = 0; i < NUM_STRIPS; ++i)
 	{
 		opc_client_rgb_strip_init(&(strips[i]), STRIP_LENGTH);
 	}
 	opc_client_rgb_strip_init(&matrix, MATRIX_STRIP_LENGTH);
 	opc_client_rgb_strip_init(&total_strip, MATRIX_STRIP_LENGTH * 5); 
+	*/
 	// initialize sampling resources
 	//adc_fds[0] = open(ADC0_PATH, O_RDONLY);
 	//adc_fds[1] = open(ADC1_PATH, O_RDONLY);
 	//sampling_channel = 0;
+	f0 = fopen(ADC0_PATH, "r");
 	//if (adc_fds[0] < 0 || adc_fds[1] < 0)
 	//{
 	//	printf("adc open failure\n");
@@ -310,7 +322,7 @@ int main(void)
 		printf("fft semaphore init error\n");
 		return 5;
 	}
-	f0 = fopen(ADC0_PATH, "r");
+	//f0 = fopen(ADC0_PATH, "r");
 
 	// initialize pthreads and send them on their way
 	pthread_t adc_thread;
@@ -345,11 +357,11 @@ int main(void)
 		return 6;
 	}
 	
-	for (int i = 0; i < NUM_STRIPS; ++i)
-	{
-		opc_client_rgb_strip_destroy(&(strips[i]));
-	}
-	opc_client_rgb_strip_destroy(&matrix);
+	//for (int i = 0; i < NUM_STRIPS; ++i)
+	//{
+	//	opc_client_rgb_strip_destroy(&(strips[i]));
+	//}
+	//opc_client_rgb_strip_destroy(&matrix);
 	fclose(f0);	// close file descriptors for adcs
 	return 0;
 }
