@@ -159,7 +159,7 @@ static void * adc_routine(void * arg)
 		}
 		// read the adc and update double-buffer
 		double value = (double) adc();
-		printf("%f\n", value);
+		//printf("%f\n", value);
 		buff[buff_index][elem_index] = value;
 		elem_index = (++elem_index)%BUFF_SIZE;
 		//printf("%f\n");				// REMOVE LATER
@@ -176,7 +176,7 @@ static void * adc_routine(void * arg)
 				printf("sem_wait(&fft_finished) error\n");
 				exit(420);
 			}
-			printf("adc thread through\n");
+			//printf("adc thread through\n");
 			// do swap
 			buff_index = (++buff_index)%2;
 			// finished with swap
@@ -215,11 +215,11 @@ static void * fft_routine(void * arg)
 			}
 		}
 		// once fft finished, calculate colors
-		printf("calculate color\n");
+		//printf("calculate color\n");
 		rgb color = calculate_color(max_index);
-		printf("negative\n");
+		//printf("negative\n");
 		rgb negative = negate_color(&color);
-		printf("negative calculated\n");
+		//printf("negative calculated\n");
 		for (unsigned int mag2_index = 0; mag2_index < BUFF_SIZE/2; ++mag2_index)
 		{
 			unsigned int bar_height = MATRIX_HEIGHT * buff[buff_index][mag2_index] / max;
@@ -236,7 +236,7 @@ static void * fft_routine(void * arg)
 				matrix_wrapper_write(2*mag2_index + 1, row_pixel, &negative);
 			}
 		}
-		printf("setting strips\n");
+		//printf("setting strips\n");
 		// set strips
 		for (unsigned int strip_index = 0; strip_index < NUM_STRIPS; ++strip_index)
 		{
@@ -247,7 +247,7 @@ static void * fft_routine(void * arg)
 				total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = color.blue;
 			}
 		}
-		printf("filling up total_strip\n");
+		//printf("filling up total_strip\n");
 		for (unsigned int led_index = 0; led_index < MATRIX_STRIP_LENGTH; ++led_index)
 		{
 			unsigned int index = led_index + (NUM_STRIPS * MATRIX_STRIP_LENGTH);
@@ -255,18 +255,18 @@ static void * fft_routine(void * arg)
 			total_strip[index].green = matrix[led_index].green;
 			total_strip[index].blue = matrix[led_index].blue;
 		}
-		printf("about to send formatted\n");
+		//printf("about to send formatted\n");
 		if (opc_client_send_formatted((char) 0, 0, total_strip))
 			printf("opc_client_send_formatted error\n");
 		// wait for adc_thread if needed
-		printf("fft thread made it to post\n");
+		//printf("fft thread made it to post\n");
 		sem_post(&fft_finished);
 		int adc_ret = sem_wait(&adc_finished);
 		if (adc_ret && errno != EINTR)
 		{
 			printf("sem_wait(&adc_finished) failed\n");	// sem_wait interrupted by signal
 		}
-		printf("fft thread through\n");
+		//printf("fft thread through\n");
 		// signal buffer swap
 		buff_index = (++buff_index)%2;
 	}
