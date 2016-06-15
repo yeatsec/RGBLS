@@ -9,9 +9,12 @@
 #include <stdlib.h>
 #include "fftlib.h"
 
+#define	BITS	10
+#define	SIZE	1024
+
 // singleton data members
-double * real_roots;
-double * imag_roots;
+const double * real_roots;
+const double * imag_roots;
 double * imag;
 
 int * inds;
