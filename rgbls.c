@@ -20,8 +20,8 @@
 #define	MATRIX_STRIP_LENGTH	256
 #define	PORT	7890
 #define	SERVER_ADDRESS	"::1"
-#define	ADC0_PATH	"/sys/devices/ocp.2/helper.14/AIN0"
-#define ADC1_PATH	"/sys/devices/ocp.2/helper.14/AIN1"
+#define	ADC0_PATH	"/sys/devices/ocp.2/helper.11/AIN0"
+#define ADC1_PATH	"/sys/devices/ocp.2/helper.11/AIN1"
 
 #define USEC	50	// desired adc sampling period in microseconds
 
@@ -98,6 +98,7 @@ static void * adc_routine(void * arg)
 		if (!elem_index)	// looped around and is full
 		{
 			signal(SIGALRM, timersignalignore);
+			printf("registered SIGALARM to ignore\n");
 			sem_post(&adc_finished);	// signal that the adc buffer is filled
 			int fftr = sem_wait(&fft_finished);	// block if fft not finished
 			if (fftr == -1 && errno != EINTR)
@@ -184,11 +185,6 @@ int main(void)
 	{
 		return 2;
 	}
-	// for debugging
-	for (int i = 0; i < 30; ++i)
-	{
-		if (opc_client_send_formatted(1,0,&strips[0]));
-	}
 	// initialize timer semaphore to zero, register signal
 	if (sem_init(&timer_sem, 0, 0))
 	{
@@ -221,6 +217,9 @@ int main(void)
 		return 7;
 	}
 	// TODO - initialize button input
+	void * ret;
+	pthread_join(adc_thread, &ret);
+	pthread_join(fft_thread, &ret);
 	printf("deallocating resources\n");
 	// close server
 	if (opc_client_close())
