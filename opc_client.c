@@ -47,6 +47,18 @@ int opc_client_init(int _port, char * _server_address)
 	return 0;
 }
 
+/*
+* send an array of rgb colors in the format expected by the OpenPixelControl server
+* the OPC server expects all n LEDs to be changed at once
+* format described below....
+* HEADER BEGIN
+* 1 byte channel number
+* 1 byte command code
+* 1 byte high byte for n leds to change
+* 1 byte low byte for n leds to change
+* HEADER END
+* 3 * n bytes in BlueRedGreen format
+*/
 int opc_client_send_formatted(char _channel, char _command, rgb  _rgb_arr[])
 {
 	if (!initialized)
@@ -92,6 +104,7 @@ int opc_client_close()
 	return 0;
 }
 
+// dynamic strip length option
 void opc_client_rgb_strip_init(rgb_strip * _strip, int _size)
 {
 	_strip->size = _size;
@@ -104,6 +117,7 @@ void opc_client_rgb_strip_init(rgb_strip * _strip, int _size)
 	}
 }
 
+// dynamic strip length option
 void opc_client_rgb_strip_destroy(rgb_strip * _strip)
 {
 	free(_strip->rgb_leds);

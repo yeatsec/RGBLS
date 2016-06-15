@@ -31,7 +31,6 @@ static int pow_of_two(int exponent)
 /* input: real (time) data
  * output: spectra energy (magnitude squared)
  */
-// TODO - CHECK SHUFFLING
 int fftlib_spectra(double * real)
 {
 	double imag[SIZE];
@@ -45,14 +44,6 @@ int fftlib_spectra(double * real)
 		imag[i] = 0.0;
 	}
 
-	/*printf("START UNPROCESSED SPECTRA\n");
-	// initialize imaginary to 0
-	for (int i = 0; i < SIZE; ++i)
-	{
-		printf("%f\n", real[i]);
-		imag[i] = 0.0;
-	}
-	*/
 	for (int stage = 0; stage < BITS; ++stage)
 	{
 		int half_frame = pow_of_two(stage);
@@ -79,15 +70,7 @@ int fftlib_spectra(double * real)
 			}
 		}
 	}
-	/* For Debugging Purposes
-	printf("START REALS\n");
-	for (int i = 0; i < SIZE; ++i)
-		printf("%f\n", real[i]);
-	printf("START IMAGINARIES\n");
-	for (int i = 0; i < SIZE; ++i)
-		printf("%f\n", imag[i]);
-	printf("START INTERNAL ENERGIES\n");
-	*/
+	
 	for (int i = 0; i < HALF_SIZE; ++i)
 	{
 		real[i] = (real[i] * real[i]) + (imag[i] * imag[i]);

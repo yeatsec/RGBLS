@@ -86,6 +86,12 @@ int adc(void)
     return strtol(value_str, NULL, 0);
 }
 
+/*
+* negate_color will take a reference to an rgb color and perform 
+* a transform in order to make it look "opposite"
+* returns an rgb struct
+*/
+
 rgb negate_color(rgb * orig)
 {
     rgb temp;
@@ -95,22 +101,28 @@ rgb negate_color(rgb * orig)
     return temp;
 }
 
+/*
+* calculate_color
+* given an index that represents a maximum frequency from the fft result, return a color
+* calculate_color effectively maps frequencies with rgb color structs
+* returns an rgb struct
+*/
 rgb calculate_color(unsigned int index)
 {
     rgb temp;
-    if (index < 4) // red full
+    if (index < 4) // start out with red, increase blue to purple
     {
         temp.red = 0xFF;
         temp.green = 0x00;
         temp.blue = index * 63;
     }
-    else if (index < 8)
+    else if (index < 8) // purple, decrease red to blue
     {
         temp.red = 0xFF - ((index-4)*63);
         temp.green = 0x00;
         temp.blue = 0xFF;
     }
-    else if (index < 12)
+    else if (index < 12) // blue, increase green to aquamarine
     {
         temp.red = 0;
         temp.green = (index - 8) * 63;
@@ -119,21 +131,37 @@ rgb calculate_color(unsigned int index)
     else
     {
         temp.red = 0;
-        temp.green = 0xFF;
+        temp.green = 0xFF; // aquamarine, decrease blue to green
         temp.blue = 0xFF - ((index - 12) * 63);
     }
     return temp;
 }
 
+/*
+* asynchronously called by the timer, increments the semaphore to allow adc sampling
+*/
 static void timersignalhandler(int sig)
 {
     sem_post(&timer_sem);
 }
 
+/*
+* dummy signal handler for when the adc buffer is full but the thread 
+* is blocked on the semaphore before the critical section
+*/
 static void timersignalignore(int sig)
 {
 }
 
+/*
+* adc_routine
+* this is a pthread routine that is responsible for sampling the adc asychronously, at a fixed rate
+* the buffer filling is controlled by the timer_semaphore
+* once the buffer is full, the adc thread signals the fft thread that it is finished by calling a sem_post
+* then a sem_wait is called until the fft thread is finished with its job
+* after the thread is released from sem_wait, both threads alternate which section of the double buffer they are operating on
+* then everything is repeated again
+*/
 static void * adc_routine(void * arg)
 {
     // initialize both sigaction structs to configure each timersignal handler
@@ -166,16 +194,15 @@ static void * adc_routine(void * arg)
         }
         // read the adc and update double-buffer
         double value = (double) adc();
-        //printf("%f\n", value);
         buff[buff_index][elem_index] = value;
         elem_index = (++elem_index)%BUFF_SIZE;
-        //printf("%f\n");				// REMOVE LATER
-        // if the double-buffer is full, wait for fft to send data and then swap
+
+        // if the double-buffer is full,  wait for fft to send data and then swap
         if (!elem_index)	// looped around and is full
         {
             if(sigaction(SIGALRM, &sa_ignore, NULL))
                 printf("set to timersignalignore fail\n");
-            // printf("registered SIGALARM to ignore\n");
+
             sem_post(&adc_finished);	// signal that the adc buffer is filled
             int fftr = sem_wait(&fft_finished);	// block if fft not finished
             if (fftr == -1 && errno != EINTR)
@@ -194,6 +221,27 @@ static void * adc_routine(void * arg)
     return NULL;
 }
 
+
+/*
+* fft routine
+* this thread routine will run until the process shuts down.
+* fft thread works on one side of the double buffer
+* the routine begins with the assumption that it has received a buffer of sampled music values from the adc routine
+* upon entering the routine, the timer sigalrm is masked
+*
+* the first job of fft_routine is to calculate an FFT on the buffer passed to it by adc routine
+* then the primary frequency and corresponding colors are determined
+* the fft result is drawn to the matrix
+* the strips are filled in with the primary frequency color
+* the player is drawn in white
+* the obstacles are drawn onto the strips with the negative color
+* the obstacles and player positions are updated
+* collisions are detected
+* if collision detected, reinitialize the game
+* signal adc thread that the fft thread is finished
+* wait until the adc thread is finished
+* switch buffers
+*/
 static void * fft_routine(void * arg)
 {
     printf("entered fft_routine, blocking SIG_ALRM\n");
@@ -213,7 +261,7 @@ static void * fft_routine(void * arg)
             continue;
         unsigned int max_index = 1;
         double max = 0.0;
-        for (unsigned int i = 1; i < BUFF_SIZE/2; ++i)
+        for (unsigned int i = 1; i < BUFF_SIZE/2; ++i) // determine max freq, spectra are repeated after halfway mark
         {
             if (buff[buff_index][i] > max)
             {
@@ -222,12 +270,12 @@ static void * fft_routine(void * arg)
             }
         }
         // once fft finished, calculate colors
-        //printf("calculate color\n");
+
         rgb color = calculate_color(max_index);
-        //printf("negative\n");
+
         rgb negative = negate_color(&color);
-        //printf("negative calculated\n");
-        if(!GAME_INITIALIZED) {
+
+        if(!GAME_INITIALIZED) { // initialize game if uninitialized
 		printf("Initialize game");
             	initPlayer();
 		myPlayer.x++;
@@ -235,10 +283,11 @@ static void * fft_routine(void * arg)
 		setObstacles();
             	GAME_INITIALIZED = 1;
         }
+	// set the colors in the matrix such that they represent the fft result
         for (unsigned int mag2_index = 0; mag2_index < BUFF_SIZE/2; ++mag2_index)
         {
             unsigned int bar_height = MATRIX_HEIGHT * buff[buff_index][mag2_index] / max;
-            if (bar_height > 8)
+            if (bar_height > 8) // this is done specifically for the 0 frequency element. it is always much larger
                 bar_height = 8;
             for (unsigned int row_pixel = 0; row_pixel < bar_height; ++row_pixel)
             {
@@ -251,8 +300,7 @@ static void * fft_routine(void * arg)
                 matrix_wrapper_write(2*mag2_index + 1, row_pixel, &negative);
             }
         }
-        //printf("setting strips\n");
-        // set strips
+        // set strips with the primary frequency color
         for (unsigned int strip_index = 0; strip_index < NUM_STRIPS; ++strip_index)
         {
             for (unsigned int led_index = 0; led_index < STRIP_LENGTH; ++led_index)
@@ -262,6 +310,7 @@ static void * fft_routine(void * arg)
                 total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = color.blue;
             }
         }
+	// write the matrix colors into the formatted message
         for (unsigned int led_index = 0; led_index < MATRIX_STRIP_LENGTH; ++led_index)
         {
             unsigned int index = led_index + (NUM_STRIPS * MATRIX_STRIP_LENGTH);
@@ -270,31 +319,37 @@ static void * fft_routine(void * arg)
             total_strip[index].blue = matrix[led_index].blue;
         }
 
-            //controlPlayer();
+        // if the maximum frequency is on the low end of the spectrum,
+	// add an obstacle and reset update control to 5 so obstacle additions
+	// are limited
         if ((max_index == 1 || max_index == 2) && update_control == 0) {
 		addObstacle();
 		update_control = 5;
         }
 	if (update_control > 0)
 		update_control--;
+	// draw the player into the formatted message
 	total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].red = 0xFF;
 	total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].green = 0xFF;
         total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].blue = 0xFF;
+	// draw all of the obstacles onto the formatted message with the negative color
 	for (int i = 0; i < numObstacles; ++i) {
         	total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].red = negative.red;
         	total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].green = negative.green;
         	total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].blue = negative.blue;
         }
+	// detect if a collision occured and adjust object xy information
 	detectCollision();
 	updateObstacles();
-        //printf("filling up total_strip\n");
-        //printf("about to send formatted\n");
+        
+       	// send all of the color data in a format that is expected by
+	// the open pixel control server
         if (opc_client_send_formatted((char) 0, 0, total_strip))
             printf("opc_client_send_formatted error\n");
         // wait for adc_thread if needed
-        //printf("fft thread made it to post\n");
+        // tell adc routine that the fft routine is done this round
         sem_post(&fft_finished);
-        int adc_ret = sem_wait(&adc_finished);
+        int adc_ret = sem_wait(&adc_finished); // wait if adc routine is not finished with its job
         if (adc_ret && errno != EINTR)
         {
             printf("sem_wait(&adc_finished) failed\n");	// sem_wait interrupted by signal
@@ -306,6 +361,7 @@ static void * fft_routine(void * arg)
     return NULL;
 }
 
+
 int main(void)
 {
     sem_t program_over;
@@ -315,24 +371,11 @@ int main(void)
         return 1;
     }
     //gpio_initialize(); // initialize input for game using libsoc
-    // initialize strip resources
-    /*for (int i = 0; i < NUM_STRIPS; ++i)
-     {
-     opc_client_rgb_strip_init(&(strips[i]), STRIP_LENGTH);
-     }
-     opc_client_rgb_strip_init(&matrix, MATRIX_STRIP_LENGTH);
-     opc_client_rgb_strip_init(&total_strip, MATRIX_STRIP_LENGTH * 5);
-     */
     // initialize sampling resources
-    //adc_fds[0] = open(ADC0_PATH, O_RDONLY);
-    //adc_fds[1] = open(ADC1_PATH, O_RDONLY);
+
     //sampling_channel = 0;
     f0 = fopen(ADC0_PATH, "r");
-    //if (adc_fds[0] < 0 || adc_fds[1] < 0)
-    //{
-    //	printf("adc open failure\n");
-    //	return 1;
-    //}
+
     // set up network connection with OPS server
     if(opc_client_init(PORT, SERVER_ADDRESS))
     {
@@ -356,8 +399,7 @@ int main(void)
         printf("fft semaphore init error\n");
         return 5;
     }
-    //f0 = fopen(ADC0_PATH, "r");
-    
+
     // initialize pthreads and send them on their way
     pthread_t adc_thread;
     pthread_t fft_thread;
@@ -366,7 +408,7 @@ int main(void)
         printf("adc_thread create failed\n");
         return 6;
     }
-    sigset_t no_alrm;
+    sigset_t no_alrm;	// mask timer sigalrm
     if(sigemptyset(&no_alrm))
         printf("main thread unable to clear no_alrm set\n");
     if(sigaddset(&no_alrm, SIGALRM))
@@ -390,12 +432,7 @@ int main(void)
         printf("client close error\n");
         return 6;
     }
-    
-    //for (int i = 0; i < NUM_STRIPS; ++i)
-    //{
-    //	opc_client_rgb_strip_destroy(&(strips[i]));
-    //}
-    //opc_client_rgb_strip_destroy(&matrix);
+
     fclose(f0);	// close file descriptors for adcs
     return 0;
 }
