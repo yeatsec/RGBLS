@@ -24,7 +24,7 @@
 
 #define	PORT	7890
 #define	SERVER_ADDRESS	"::1"
-#define	ADC0_PATH	"/sys/devices/ocp.2/helper.11/AIN0"
+#define	ADC0_PATH	"/sys/bus/iio/devices/iio:device0/in_voltage0_raw"
 #define ADC1_PATH	"/sys/devices/ocp.2/helper.11/AIN1"
 
 #define USEC	1000	// desired adc sampling period in microseconds
@@ -40,7 +40,7 @@ rgb_strip matrix;
 rgb_strip total_strip;
 
 // sampling resources
-int adc_fds[2];
+FILE * f0;
 
 // control adc
 sem_t timer_sem;
@@ -75,15 +75,10 @@ void matrix_wrapper_write(unsigned int col, unsigned int row, rgb * _color)
 
 int adc(unsigned int chan)
 {
-	if (chan > 1)
-	{
-		printf("invalid channel specified\n");
-		exit(1);
-	}
-	int fd = adc_fds[chan];
-	char value[4];
-	read(fd, &value, 4);
-	return atoi(value);
+	char value_str[7];
+	fread(&value_str, 6, 6, f0);
+	rewind(f0);
+	return strtol(value_str, NULL, 0);
 }
 
 rgb negate_color(rgb * orig)
@@ -165,8 +160,8 @@ static void * adc_routine(void * arg)
 			exit(-1);
 		}
 		// read the adc and update double-buffer
-		double value = 0.0;
-		// double value = (double) adc(sampling_channel);
+		double value = (double) adc(sampling_channel);
+		printf("%f\n", value);
 		buff[buff_index][elem_index] = value;
 		elem_index = (++elem_index)%BUFF_SIZE;
 		//printf("%f\n");				// REMOVE LATER
@@ -256,8 +251,6 @@ static void * fft_routine(void * arg)
 		}
 		if (opc_client_send_formatted((char) 0, 0, &total_strip))
 			printf("opc_client_send_formatted error\n");
-		else
-			printf("sent\n");
 		// wait for adc_thread if needed
 		sem_post(&fft_finished);
 		while (sem_wait(&adc_finished) && errno == EINTR)
@@ -286,13 +279,15 @@ int main(void)
 	opc_client_rgb_strip_init(&matrix, MATRIX_STRIP_LENGTH);
 	opc_client_rgb_strip_init(&total_strip, MATRIX_STRIP_LENGTH * 5); 
 	// initialize sampling resources
-	adc_fds[0] = open(ADC0_PATH, O_RDONLY);
-	adc_fds[1] = open(ADC1_PATH, O_RDONLY);
-	if (adc_fds[0] < 0 || adc_fds[1] < 0)
-	{
-		printf("adc open failure\n");
-		return 1;
-	}
+	//adc_fds[0] = open(ADC0_PATH, O_RDONLY);
+	//adc_fds[1] = open(ADC1_PATH, O_RDONLY);
+	//sampling_channel = 0;
+	//if (adc_fds[0] < 0 || adc_fds[1] < 0)
+	//{
+	//	printf("adc open failure\n");
+	//	return 1;
+	//}
+	FILE* f0 = fopen(ADC0_PATH, "r");
 	// set up network connection with OPS server
 	if(opc_client_init(PORT, SERVER_ADDRESS))
 	{
@@ -354,8 +349,7 @@ int main(void)
 		opc_client_rgb_strip_destroy(&(strips[i]));
 	}
 	opc_client_rgb_strip_destroy(&matrix);
-	close(adc_fds[0]);	// close file descriptors for adcs
-	close(adc_fds[1]);
+	fclose(f0);	// close file descriptors for adcs
 	return 0;
 }
 

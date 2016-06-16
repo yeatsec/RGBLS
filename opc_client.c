@@ -7,7 +7,7 @@
 #include <strings.h>
 #include "opc_client.h"
 
-#define	MAX_MSG_SIZE	772 // 256 * 3 + 4
+#define	MAX_MSG_SIZE	3844 // 256 * 3 + 4
 
 int sock_fd; // file descriptor for socket
 struct sockaddr_in6 sa;
