@@ -287,7 +287,6 @@ int main(void)
 	//	printf("adc open failure\n");
 	//	return 1;
 	//}
-	FILE* f0 = fopen(ADC0_PATH, "r");
 	// set up network connection with OPS server
 	if(opc_client_init(PORT, SERVER_ADDRESS))
 	{
@@ -311,6 +310,8 @@ int main(void)
 		printf("fft semaphore init error\n");
 		return 5;
 	}
+	f0 = fopen(ADC0_PATH, "r");
+
 	// initialize pthreads and send them on their way
 	pthread_t adc_thread;
 	pthread_t fft_thread;
