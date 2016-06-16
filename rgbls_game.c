@@ -7,6 +7,7 @@
 //
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 #include "rgbls_game.h"
 
 #define TOP	60
@@ -63,6 +64,7 @@ void initObstacle(int i) {
         tmp.currPos.x = r;
 	tmp.currPos.y = TOP - 1;
         obstacleArray[i] = tmp;
+	printf("obstacle initialized\n");
     
 }
 
@@ -96,7 +98,7 @@ void displayGame() {
 }
 
 void addObstacle() {
-	if (numObstacles < MAX_OBSTACLES) {
+	if (numObstacles < 10) {
 		numObstacles++;
 		initObstacle(numObstacles-1);
 	}

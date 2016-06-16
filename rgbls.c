@@ -258,7 +258,8 @@ static void * fft_routine(void * arg)
         if(GAME_INITIALIZED) {
             //controlPlayer();
             if (max_index == 1 || max_index == 2) {
-                addObstacle();
+                printf("obstacle added\n");
+		addObstacle();
             }
             total_strip[myPlayer.currPos.y + (myPlayer.currPos.x*MATRIX_STRIP_LENGTH)].red = 0xFF;
             total_strip[myPlayer.currPos.y + (myPlayer.currPos.x*MATRIX_STRIP_LENGTH)].green = 0xFF;

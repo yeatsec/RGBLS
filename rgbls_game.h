@@ -27,7 +27,7 @@ struct obstacle {
 	struct location currPos;
 };
 
-struct obstacle obstacleArray[MAX_OBSTACLES];
+static struct obstacle obstacleArray[MAX_OBSTACLES];
 
 static struct player myPlayer;
 
