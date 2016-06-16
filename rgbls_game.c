@@ -9,23 +9,22 @@
 #include <unistd.h>
 #include "rgbls_game.h"
 
+#define TOP	60
+#define	WIDTH	4
 
-struct player myPlayer;
-
-int numObstacles = 5;
-struct obstacles[numObstacles] obstacleArray;
-int rightBorder = 5;
+int rightBorder = 4;
 int leftBorder = 0;
-int top = 10;
 
 void moveRight();
 void moveLeft();
-void controlPlayer() {
+void controlPlayer(int i) {
     
     //check if right button has been pressed
-    moveRight();
+	if (i == 2)
+		moveRight();
     //check if left button has been pressed
-    moveLeft();
+	if (i == 1)
+		moveLeft();
     //if no button has been pressed - do nothing
     
 }
@@ -60,39 +59,30 @@ void initObstacle(int i) {
     
     struct obstacle tmp;
    
-        int r = rand() % top;
-        if (r != myPlayer.currPos.x) {
-            tmp.currPos.x = r;
-        }
-        r = rand() % top;
-        if (r != myPlayer.currPos.y) {
-            tmp.currPos.y = r;
-        }
+        int r = rand() % WIDTH;
+        tmp.currPos.x = r;
+	tmp.currPos.y = TOP - 1;
         obstacleArray[i] = tmp;
     
 }
 
 void initPlayer() {
     
-    myPlayer.currPos.x = 2;
+    myPlayer.currPos.x = 0;
     myPlayer.currPos.y = 3;
-    myPlayer.lives = 3;
     
 }
 
 
 void detectCollision() {
     
-    for (int i = 0; i < numObstacles; ++i) {
-        if (obstacleArray[i].currPos.x == myPlayer.currPos.x && obstacleArray[i].currPos.y == myPlayer.currPos.y) {
-            (myPlayer.lives)--;
-            if (myPlayer.lives == 0) {
-                //GAME OVER
-                //should we just restart the game?
-                //how do we want to handle end of game functionality
-            }
+   	for (int i = 0; i < numObstacles; ++i) {
+		if (obstacleArray[i].currPos.x == myPlayer.currPos.x && obstacleArray[i].currPos.y == myPlayer.currPos.y) {
+			initPlayer();
+			numObstacles = 0;
+           	 }
         }
-    }
+    
     
 }
 
@@ -105,7 +95,21 @@ void displayGame() {
     
 }
 
-int main(void) {
+void addObstacle() {
+	if (numObstacles < MAX_OBSTACLES) {
+		numObstacles++;
+		initObstacle(numObstacles-1);
+	}
+}
+
+void removeObstacle()
+{
+	if (numObstacles > 0) {
+		numObstacles--;
+	}
+}
+
+/*int main(void) {
     
     //initialize player
     initPlayer();
@@ -125,3 +129,4 @@ int main(void) {
     }
     
 }
+*/

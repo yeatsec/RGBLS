@@ -12,6 +12,7 @@
 
 #include "fftlib.h"
 #include "opc_client.h"
+#include "rgbls_game.h"
 
 // constants
 #define	BUFF_BITS	5
@@ -249,9 +250,9 @@ static void * fft_routine(void * arg)
         {
             for (unsigned int led_index = 0; led_index < STRIP_LENGTH; ++led_index)
             {
-                total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].red = 0xFF;
-                total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].green = 0xFF;
-                total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = 0xFF;
+                total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].red = color.red;
+                total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].green = color.green;
+                total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = color.blue;
             }
         }
         if(GAME_INITIALIZED) {
@@ -259,13 +260,13 @@ static void * fft_routine(void * arg)
             if (max_index == 1 || max_index == 2) {
                 addObstacle();
             }
-            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x)*MATRIX_STRING_LENGTH)].red = negative.red;
-            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x)*MATRIX_STRING_LENGTH)].green = negative.green;
-            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x)*MATRIX_STRING_LENGTH)].blue = negative.blue;
+            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x*MATRIX_STRIP_LENGTH)].red = 0xFF;
+            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x*MATRIX_STRIP_LENGTH)].green = 0xFF;
+            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x*MATRIX_STRIP_LENGTH)].blue = 0xFF;
             for (int i = 0; i < numObstacles; ++i) {
-                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x)*MATRIX_STRING_LENGTH)].red = negative.red;
-                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x)*MATRIX_STRING_LENGTH)].green = negative.green;
-                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x)*MATRIX_STRING_LENGTH)].blue = negative.blue;
+                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x*MATRIX_STRIP_LENGTH)].red = negative.red;
+                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x*MATRIX_STRIP_LENGTH)].green = negative.green;
+                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x*MATRIX_STRIP_LENGTH)].blue = negative.blue;
             }
             detectCollision();
             updateObstacles();
