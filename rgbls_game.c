@@ -16,6 +16,8 @@
 int rightBorder = 4;
 int leftBorder = 0;
 
+int max = 10;
+
 void moveRight();
 void moveLeft();
 void controlPlayer(int i) {
@@ -98,7 +100,11 @@ void displayGame() {
 }
 
 void addObstacle() {
+<<<<<<< HEAD
 	if (numObstacles < 10) {
+=======
+	if (numObstacles < max) {
+>>>>>>> 17cad59a39cddf4078c3e8298b4d6daa6d085064
 		numObstacles++;
 		initObstacle(numObstacles-1);
 	}
