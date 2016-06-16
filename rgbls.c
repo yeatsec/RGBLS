@@ -37,6 +37,7 @@ sem_t fft_finished;
 // rgb_strip resources
 rgb_strip strips[NUM_STRIPS];
 rgb_strip matrix;
+rgb_strip total_strip;
 
 // sampling resources
 int adc_fds[2];
@@ -46,20 +47,24 @@ sem_t timer_sem;
 unsigned int sampling_channel;
 
 // wrapper to account for snaking-strip structure of the LED matrix
-void matrix_wrapper_write(unsigned int col, unsigned int row, rgb _color)
+void matrix_wrapper_write(unsigned int col, unsigned int row, rgb * _color)
 {
 	unsigned int index = 0;
 	if (col%2==0)	// col is even-indexed
 	{
 		// col must be going 'down'
-		index = (++col)*MATRIX_HEIGHT - row - 1;
+		index = (col+1)*MATRIX_HEIGHT - row - 1;
 	}
 	else
 	{
 		// col must be going 'up'
 		index = col*MATRIX_HEIGHT + row;	
 	}
-	matrix.rgb_leds[index] = _color;
+	//printf("index: %u\n", index);
+	//printf("matrix: red %d green %d blue %d\n",(int) _color->red,(int) _color->green,(int) _color->blue);
+	matrix.rgb_leds[index].red = _color->red;
+	matrix.rgb_leds[index].green = _color->green;
+	matrix.rgb_leds[index].blue = _color->blue;
 }
 
 /*
@@ -200,7 +205,6 @@ static void * fft_routine(void * arg)
 	if(sigprocmask(SIG_BLOCK, &no_sigalrm, NULL))
 		printf("unable to mask sigalrm for fft_thread\n");
 	unsigned int buff_index = 1; // initialize to second arr
-	char blueval = 255;
 	while(1)
 	{
 		// calculate fft
@@ -224,13 +228,13 @@ static void * fft_routine(void * arg)
 			unsigned int bar_height = MATRIX_HEIGHT * buff[buff_index][mag2_index] / max;
 			for (unsigned int row_pixel = 0; row_pixel < bar_height; ++row_pixel)
 			{
-				matrix_wrapper_write(2*mag2_index, row_pixel, color);
-				matrix_wrapper_write(2*mag2_index + 1, row_pixel, color);
+				matrix_wrapper_write(2*mag2_index, row_pixel, &color);
+				matrix_wrapper_write(2*mag2_index + 1, row_pixel, &color);
 			}
 			for (unsigned int row_pixel = bar_height; row_pixel < MATRIX_HEIGHT; ++row_pixel)
 			{
-				matrix_wrapper_write(2*mag2_index, row_pixel, negative);
-				matrix_wrapper_write(2*mag2_index + 1, row_pixel, negative);
+				matrix_wrapper_write(2*mag2_index, row_pixel, &negative);
+				matrix_wrapper_write(2*mag2_index + 1, row_pixel, &negative);
 			}
 		}
 		// set strips
@@ -238,24 +242,22 @@ static void * fft_routine(void * arg)
 		{
 			for (unsigned int led_index = 0; led_index < STRIP_LENGTH; ++led_index)
 			{
-				strips[strip_index].rgb_leds[led_index].red = color.red;
-				strips[strip_index].rgb_leds[led_index].green = color.green;
-				strips[strip_index].rgb_leds[led_index].blue = color.blue;
+				total_strip.rgb_leds[led_index + (strip_index*MATRIX_STRIP_LENGTH)].red = color.red;
+				total_strip.rgb_leds[led_index + (strip_index*MATRIX_STRIP_LENGTH)].green = color.green;
+				total_strip.rgb_leds[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = color.blue;
 			}
 		}
-		// set matrix
-		// nah
-		// send formatted messages via opc_client
-		for (unsigned int strip_index = 0; strip_index < NUM_STRIPS; ++strip_index)
+		for (unsigned int led_index = 0; led_index < MATRIX_STRIP_LENGTH; ++led_index)
 		{
-			if(opc_client_send_formatted((char) strip_index, 0, &(strips[strip_index])))
-			{
-				printf("opc_client_send_formatted error\n");
-			}
+			unsigned int index = led_index + (NUM_STRIPS * MATRIX_STRIP_LENGTH);
+			total_strip.rgb_leds[index].red = matrix.rgb_leds[led_index].red;
+			total_strip.rgb_leds[index].green = matrix.rgb_leds[led_index].green;
+			total_strip.rgb_leds[index].blue = matrix.rgb_leds[led_index].blue;
 		}
-		if (opc_client_send_formatted((char)4, 0, &matrix))
-			printf("opc_client_send_formatted matrix error\n");
-		
+		if (opc_client_send_formatted((char) 0, 0, &total_strip))
+			printf("opc_client_send_formatted error\n");
+		else
+			printf("sent\n");
 		// wait for adc_thread if needed
 		sem_post(&fft_finished);
 		while (sem_wait(&adc_finished) && errno == EINTR)
@@ -282,7 +284,7 @@ int main(void)
 		opc_client_rgb_strip_init(&(strips[i]), STRIP_LENGTH);
 	}
 	opc_client_rgb_strip_init(&matrix, MATRIX_STRIP_LENGTH);
-
+	opc_client_rgb_strip_init(&total_strip, MATRIX_STRIP_LENGTH * 5); 
 	// initialize sampling resources
 	adc_fds[0] = open(ADC0_PATH, O_RDONLY);
 	adc_fds[1] = open(ADC1_PATH, O_RDONLY);
