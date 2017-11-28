@@ -8,9 +8,9 @@
 #ifndef FFTLIB_H_
 #define FFTLIB_H_
 
-int fftlib_init(int _size);
+int fftlib_init(int _size_in_bits);
 
-int fftlib_spectra(double * buffer);
+int fftlib_spectra(double * real);
 
 int fftlib_free();
 
