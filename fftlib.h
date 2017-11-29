@@ -8,10 +8,9 @@
 #ifndef FFTLIB_H_
 #define FFTLIB_H_
 
-int fftlib_init(int _size_in_bits);
-
+/*
+* Expects sampled data of type double of SIZE=1024 and BITS=10
+*/
 int fftlib_spectra(double * real);
-
-int fftlib_free();
 
 #endif /* FFTLIB_H_ */
