@@ -45,6 +45,11 @@ int main(void)
 	{
 		exit(1);
 	}
+	
+	for (int i = 0; i < 30; ++i)
+	{
+		if (opc_client_send_formatted(0,0,&strips[0]));
+	}
 	// initialize I/O for buttons
 	// initialize state in free-mode
 	// timer-based semaphore-controlled ADC sampling

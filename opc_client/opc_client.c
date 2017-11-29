@@ -54,8 +54,8 @@ int opc_client_send_formatted(char _channel, char _command, rgb_strip * _strip_p
 	char msg[MAX_MSG_SIZE];
 	msg[0] = channel;
 	msg[1] = command;
-	msg[2] = (_strip_ptr->size * 3)/256;
-	msg[3] = (_strip_ptr->size * 3)%256;
+	msg[2] = (char) ((_strip_ptr->size * 3)/256);
+	msg[3] = (char) ((_strip_ptr->size * 3)%256);
 
 	for (int i = 0; i < _data_size; ++i)
 	{
