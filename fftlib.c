@@ -33,6 +33,14 @@ int pow_of_two(int exponent)
 // TODO - CHECK SHUFFLING
 int fftlib_spectra(double * real)
 {
+	double temp[SIZE];
+	// reorder spectra data
+	for (int i = 0; i < SIZE; ++i)
+		temp[i] = real[inds[i]];
+
+	for (int i = 0; i < SIZE; ++i)
+		real[i] = temp[i];
+
 	// initialize imaginary to 0
 	for (int i = 0; i < SIZE; ++i)
 	{
@@ -48,8 +56,7 @@ int fftlib_spectra(double * real)
 			for (int b = 0; b < half_frame; ++b)
 			{
 				int left_butterfly_index = a + b;
-				int right_butterfly_index = inds[left_butterfly_index + half_frame];
-				left_butterfly_index = inds[left_butterfly_index];
+				int right_butterfly_index = left_butterfly_index + half_frame;
 				int left_root_index = b * rootSpacing;
 				int right_root_index = (b + half_frame) * rootSpacing;
 				/* First Half of Butterfly Calculation */
