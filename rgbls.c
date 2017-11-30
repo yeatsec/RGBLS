@@ -14,8 +14,8 @@
 #include "opc_client.h"
 
 // constants
-#define	BUFF_BITS	7
-#define	BUFF_SIZE	128
+#define	BUFF_BITS	5
+#define	BUFF_SIZE	32
 #define	STRIP_LENGTH	60
 #define	NUM_STRIPS	4
 #define	MATRIX_STRIP_LENGTH	256
@@ -24,7 +24,7 @@
 #define	ADC0_PATH	"/sys/devices/ocp.2/helper.11/AIN0"
 #define ADC1_PATH	"/sys/devices/ocp.2/helper.11/AIN1"
 
-#define USEC	200	// desired adc sampling period in microseconds
+#define USEC	1000	// desired adc sampling period in microseconds
 
 // double-buffer data members
 double buff[2][BUFF_SIZE];
@@ -146,8 +146,8 @@ static void * fft_routine(void * arg)
 	while(1)
 	{
 		// calculate fft
-		//if (fftlib_spectra(buff[buff_index]))
-		//	continue;
+		if (fftlib_spectra(buff[buff_index]))
+			continue;
 		
 		// once fft finished, calculate colors
 		rgb color;
