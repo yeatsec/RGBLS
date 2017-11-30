@@ -19,6 +19,9 @@
 #define	STRIP_LENGTH	60
 #define	NUM_STRIPS	4
 #define	MATRIX_STRIP_LENGTH	256
+#define MATRIX_WIDTH	32	// number of columns
+#define MATRIX_HEIGHT	8	// number of rows
+
 #define	PORT	7890
 #define	SERVER_ADDRESS	"::1"
 #define	ADC0_PATH	"/sys/devices/ocp.2/helper.11/AIN0"
@@ -42,6 +45,22 @@ int adc_fds[2];
 sem_t timer_sem;
 unsigned int sampling_channel;
 
+// wrapper to account for snaking-strip structure of the LED matrix
+void matrix_wrapper_write(unsigned int col, unsigned int row, rgb _color)
+{
+	unsigned int index = 0;
+	if (col%2==0)	// col is even-indexed
+	{
+		// col must be going 'down'
+		index = (++col)*MATRIX_HEIGHT - row - 1;
+	}
+	else
+	{
+		// col must be going 'up'
+		index = col*MATRIX_HEIGHT + row;	
+	}
+	matrix[i] = _color;
+}
 
 /*
 * int adc(unsigned int chan)
