@@ -13,10 +13,10 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#define LEFT_BUTTON_IN = 1;  //Linux ID number for GPIO you wish to use
-#define RIGHT_BUTTON_IN = 2;
-#define MODE_INPUT_IN = 3;
-#define ADC_INPUT_IN = 4;
+#define LEFT_BUTTON_IN = 67;  //Linux ID number for GPIO you wish to use
+#define RIGHT_BUTTON_IN = 68;
+#define MODE_INPUT_IN = 44;
+#define ADC_INPUT_IN = 26;
 
 gpio *left_button;
 gpio *right_button;
@@ -44,6 +44,11 @@ void gpio_initialize() {
     libsoc_gpio_set_level(right_button, HIGH);
     libsoc_gpio_set_level(mode_input, HIGH);
     libsoc_gpio_set_direction(adc_input, HIGH);
+    
+    libsoc_gpio_set_edge(left_button, FALLING);
+    libsoc_gpio_set_edge(right_button, FALLING);
+    libsoc_gpio_set_edge(mode_input, FALLING);
+    libsoc_gpio_set_edge(adc_input, FALLING);
     
     libsoc_gpio_callback_interrupt(left_button, &checkLeftButton, (void*)NULL);
     libsoc_gpio_callback_interrupt(right_button, &checkRightButton, (void*)NULL);
