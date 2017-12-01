@@ -19,6 +19,5 @@ int* checkRightButton(void* arg);
 
 int* checkMode(void* arg);
 
-int* checkADC(void* arg);
 
 #endif /* gpio_h */
