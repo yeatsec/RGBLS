@@ -13,17 +13,14 @@
 
 #include <stdio.h>
 
-struct location {
+struct player {
     int x;
     int y;
 };
 
-struct player {
-    struct location currPos;
-};
-
 struct obstacle {
-	struct location currPos;
+	int x;
+	int y;
 };
 
 static struct obstacle obstacleArray[MAX_OBSTACLES];
@@ -47,5 +44,7 @@ void displayGame();
 void addObstacle();
 
 void removeObstacle();
+
+void setObstacles();
 
 #endif /* rgbls_game_h */
