@@ -20,7 +20,6 @@ struct location {
 
 struct player {
     struct location currPos;
-    int lives;
 };
 
 struct obstacle {
