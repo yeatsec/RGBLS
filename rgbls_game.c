@@ -13,7 +13,7 @@
 #define TOP	60
 #define	WIDTH	4
 
-int rightBorder = 4;
+int rightBorder = 3
 int leftBorder = 0;
 
 int max = 10;
@@ -100,14 +100,12 @@ void displayGame() {
 }
 
 void addObstacle() {
-<<<<<<< HEAD
-	if (numObstacles < 10) {
-=======
+
 	if (numObstacles < max) {
->>>>>>> 17cad59a39cddf4078c3e8298b4d6daa6d085064
 		numObstacles++;
 		initObstacle(numObstacles-1);
 	}
+	printf("Obstacle added");
 }
 }
 
@@ -119,7 +117,7 @@ void removeObstacle()
 }
 
 
-void setObstacle() {
+void setObstacles() {
 	numObstacles = 3;
 	struct obstacle1;
 	obstacle1.x = 2;
@@ -133,6 +131,7 @@ void setObstacle() {
 	obstacle1.x = 0;
 	obstacle1.y = 25;
 	obstacleArray[2] = obstacle3;
+	printf("obstacles set");
 }
 /*int main(void) {
     
