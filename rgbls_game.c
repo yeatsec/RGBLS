@@ -33,15 +33,15 @@ void controlPlayer(int i) {
 }
 void moveRight() {
     
-    if (myPlayer.currPos.x < rightBorder) {
-        (myPlayer.currPos.x)++;
+    if (myPlayer.x < rightBorder) {
+        (myPlayer.x)++;
     }
     
 }
 void moveLeft() {
     
-    if (myPlayer.currPos.x > leftBorder) {
-        (myPlayer.currPos.x)--;
+    if (myPlayer.x > leftBorder) {
+        (myPlayer.x)--;
     }
     
 }
@@ -49,8 +49,8 @@ void moveLeft() {
 void updateObstacles() {
     
     for (int i = 0; i < numObstacles; ++i) {
-        if (obstacleArray[i].currPos.y > 0) {
-            (obstacleArray[i].currPos.y)--;
+        if (obstacleArray[i].y > 0) {
+            (obstacleArray[i].y)--;
         } else {
             initObstacle(i);
         }
@@ -63,8 +63,8 @@ void initObstacle(int i) {
     struct obstacle tmp;
    
         int r = rand() % WIDTH;
-        tmp.currPos.x = r;
-	tmp.currPos.y = TOP - 1;
+        tmp.x = r;
+	tmp.y = TOP - 1;
         obstacleArray[i] = tmp;
 	printf("obstacle initialized\n");
     
@@ -72,8 +72,8 @@ void initObstacle(int i) {
 
 void initPlayer() {
     
-    myPlayer.currPos.x = 0;
-    myPlayer.currPos.y = 3;
+    myPlayer.x = 0;
+    myPlayer.y = 3;
     
 }
 
@@ -81,7 +81,7 @@ void initPlayer() {
 void detectCollision() {
     
    	for (int i = 0; i < numObstacles; ++i) {
-		if (obstacleArray[i].currPos.x == myPlayer.currPos.x && obstacleArray[i].currPos.y == myPlayer.currPos.y) {
+		if (obstacleArray[i].x == myPlayer.x && obstacleArray[i].y == myPlayer.y) {
 			initPlayer();
 			numObstacles = 0;
            	 }
@@ -109,6 +109,7 @@ void addObstacle() {
 		initObstacle(numObstacles-1);
 	}
 }
+}
 
 void removeObstacle()
 {
@@ -117,6 +118,22 @@ void removeObstacle()
 	}
 }
 
+
+void setObstacle() {
+	numObstacles = 3;
+	struct obstacle1;
+	obstacle1.x = 2;
+	obstacle1.y = 30;
+	obstacleArray[0] = obstacle1;
+	struct obstacle2;
+	obstacle2.x = 1;
+	obstacle2.y = 35;
+	obstacleArray[1] = obstacle2;
+	struct obstacle3;
+	obstacle1.x = 0;
+	obstacle1.y = 25;
+	obstacleArray[2] = obstacle3;
+}
 /*int main(void) {
     
     //initialize player
@@ -138,3 +155,6 @@ void removeObstacle()
     
 }
 */
+	
+
+	
