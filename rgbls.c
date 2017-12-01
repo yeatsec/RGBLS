@@ -225,8 +225,11 @@ static void * fft_routine(void * arg)
         rgb negative = negate_color(&color);
         //printf("negative calculated\n");
         if(!GAME_INITIALIZED) {
-            initPlayer();
-            GAME_INITIALIZED = 1;
+		printf("Initialize game");
+            	initPlayer();
+		printf("Put some obstacles in");
+		setObstacles();
+            	GAME_INITIALIZED = 1;
         }
         for (unsigned int mag2_index = 0; mag2_index < BUFF_SIZE/2; ++mag2_index)
         {
@@ -255,23 +258,23 @@ static void * fft_routine(void * arg)
                 total_strip[led_index + (strip_index*MATRIX_STRIP_LENGTH)].blue = color.blue;
             }
         }
-        if(GAME_INITIALIZED) {
+        
             //controlPlayer();
             if (max_index == 1 || max_index == 2) {
                 printf("obstacle added\n");
 		addObstacle();
             }
-            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x*MATRIX_STRIP_LENGTH)].red = 0xFF;
-            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x*MATRIX_STRIP_LENGTH)].green = 0xFF;
-            total_strip[myPlayer.currPos.y + (myPlayer.currPos.x*MATRIX_STRIP_LENGTH)].blue = 0xFF;
+            total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].red = 0xFF;
+            total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].green = 0xFF;
+            total_strip[myPlayer.y + (myPlayer.x*MATRIX_STRIP_LENGTH)].blue = 0xFF;
             for (int i = 0; i < numObstacles; ++i) {
-                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x*MATRIX_STRIP_LENGTH)].red = negative.red;
-                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x*MATRIX_STRIP_LENGTH)].green = negative.green;
-                total_strip[obstacleArray[i].currPos.y + (obstacleArray[i].currPos.x*MATRIX_STRIP_LENGTH)].blue = negative.blue;
+                total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].red = negative.red;
+                total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].green = negative.green;
+                total_strip[obstacleArray[i].y + (obstacleArray[i].x*MATRIX_STRIP_LENGTH)].blue = negative.blue;
             }
             detectCollision();
             updateObstacles();
-        }
+       
         //printf("filling up total_strip\n");
         for (unsigned int led_index = 0; led_index < MATRIX_STRIP_LENGTH; ++led_index)
         {
