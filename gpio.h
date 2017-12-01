@@ -17,7 +17,6 @@ int* checkLeftButton(void* arg);
 
 int* checkRightButton(void* arg);
 
-int* checkMode(void* arg);
 
 
 #endif /* gpio_h */
