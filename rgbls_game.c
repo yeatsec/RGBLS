@@ -33,14 +33,18 @@ void controlPlayer(int i) {
 }
 void moveRight() {
     
+   	//check if myPlayer has reached the boundary
     if (myPlayer.x < rightBorder) {
+	    //if myPlayer has not reached the boundary, move it one position to the right 
         (myPlayer.x)++;
     }
     
 }
 void moveLeft() {
     
+	//check if myPlayer has reached the boundary
     if (myPlayer.x > leftBorder) {
+	    //if myPlayer has not reached the boundary, move it on position to the left 
         (myPlayer.x)--;
     }
     
@@ -48,10 +52,12 @@ void moveLeft() {
 
 void updateObstacles() {
     
+	//move all the obstacles down one position, until the obstacle has reached the bottom 
     for (int i = 0; i < numObstacles; ++i) {
         if (obstacleArray[i].y > 0) {
             (obstacleArray[i].y)--;
         } else {
+		//if obstacle has reached the bottom, reinitialize the obstacle 
             initObstacle(i);
         }
     }
@@ -62,16 +68,19 @@ void initObstacle(int i) {
     
     struct obstacle tmp;
    
+	//generate random number within the boundaries of the width
         int r = rand() % WIDTH;
+	//set that random number as the horizontal position of myPlayer
         tmp.x = r;
+	//set the top of the board as the vertical position of myPlayer 
 	tmp.y = TOP - 1;
         obstacleArray[i] = tmp;
-	//printf("obstacle initialized\n");
     
 }
 
 void initPlayer() {
     
+	//starting position of myPlayer
     myPlayer.x = 0;
     myPlayer.y = 3;
     
@@ -79,9 +88,11 @@ void initPlayer() {
 
 
 void detectCollision() {
-    
+	
+	//check if obstacle is in the same position as myPlayer
    	for (int i = 0; i < numObstacles; ++i) {
 		if (obstacleArray[i].x == myPlayer.x && obstacleArray[i].y == myPlayer.y) {
+			//if there is a collision, reinitialize myPlayer and clear asteroids (aka restart the game)
 			initPlayer();
 			numObstacles = 0;
            	 }
@@ -90,27 +101,24 @@ void detectCollision() {
     
 }
 
-//increase level functionality?
-
 
 void displayGame() {
-    
-    //might need this to work with the lights, but i am not sure how to do this
     
 }
 
 void addObstacle() {
 
+	//if the max number of obstacles has not been reached, add another obstacle to the game
 	if (numObstacles < max) {
 		numObstacles++;
 		initObstacle(numObstacles-1);
 	}
-	//printf("Obstacle added");
 }
 
 
 void removeObstacle()
 {
+	//if there is one or more obstacle in the game, remove an obstacle from the game
 	if (numObstacles > 0) {
 		numObstacles--;
 	}
@@ -118,6 +126,8 @@ void removeObstacle()
 
 
 void setObstacles() {
+	
+	//initialize 3 obstacles at once in different positions on the board
 	numObstacles = 3;
 	struct obstacle obstacle1;
 	obstacle1.x = 2;
@@ -131,29 +141,9 @@ void setObstacles() {
 	obstacle3.x = 0;
 	obstacle3.y = 25;
 	obstacleArray[2] = obstacle3;
-	//printf("obstacles set");
+	
 }
-/*int main(void) {
-    
-    //initialize player
-    initPlayer();
-    
-    //initialize obstacles
-    for (int i = 0; i < numObstacles; ++i) {
-        initObstacle(i);
-    }
-    
-    while (myPlayer.lives != 0) {
-        diplayGame() //?
-        usleep(500);
-        detectCollision();
-        controlPlayer();
-        updateObstacles();
-        //level functionality would go here
-    }
-    
-}
-*/
+
 	
 
 	
